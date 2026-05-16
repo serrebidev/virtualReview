@@ -21,23 +21,29 @@ except:
 def _isTermControl(obj):
 	return hasattr(obj, "UIAElement") and obj.UIAElement and obj.UIAElement.currentClassName == "TermControl"
 
+def _isDecorativeTerminalLine(line):
+	# True for lines whose only non-whitespace characters are in the Unicode Box Drawing
+	# block (U+2500-U+257F): the borders, separators, and corners that TUI apps such as
+	# Claude Code paint. Content lines that happen to contain a "│" border still survive
+	# because the letters/digits inside fall outside the range.
+	stripped = line.strip()
+	if not stripped:
+		return True
+	return all("─" <= ch <= "╿" for ch in stripped)
+
 def _cleanTerminalText(text):
-	# Terminal cells are space-padded to the column width, and TUI apps such as Claude Code,
-	# vim, htop, etc. reserve a fixed bottom row for status/input — the rows in between are
-	# captured as long runs of blank padding. Strip per-line trailing whitespace and collapse
-	# 2+ consecutive blank lines to one so the review buffer doesn't include the visual gap.
-	lines = [line.rstrip() for line in text.split("\n")]
-	cleaned = []
-	prevBlank = False
-	for line in lines:
-		if not line:
-			if prevBlank:
-				continue
-			prevBlank = True
-		else:
-			prevBlank = False
-		cleaned.append(line)
-	return "\n".join(cleaned).rstrip()
+	# Terminal cells are space-padded to the column width, and TUI apps reserve fixed
+	# rows/columns for borders, status, input, etc. Captured as a UNIT_STORY this turns
+	# into long runs of blank padding and box-border-only lines that bury the actual
+	# content when navigated line-by-line in the review window. Strip per-line trailing
+	# whitespace and drop lines that carry no real content.
+	lines = []
+	for line in text.split("\n"):
+		stripped = line.rstrip()
+		if _isDecorativeTerminalLine(stripped):
+			continue
+		lines.append(stripped)
+	return "\n".join(lines)
 
 def obtainUWPWindowText():
 	foreground = api.getForegroundObject()
