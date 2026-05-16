@@ -21,6 +21,24 @@ except:
 def _isTermControl(obj):
 	return hasattr(obj, "UIAElement") and obj.UIAElement and obj.UIAElement.currentClassName == "TermControl"
 
+def _cleanTerminalText(text):
+	# Terminal cells are space-padded to the column width, and TUI apps such as Claude Code,
+	# vim, htop, etc. reserve a fixed bottom row for status/input — the rows in between are
+	# captured as long runs of blank padding. Strip per-line trailing whitespace and collapse
+	# 2+ consecutive blank lines to one so the review buffer doesn't include the visual gap.
+	lines = [line.rstrip() for line in text.split("\n")]
+	cleaned = []
+	prevBlank = False
+	for line in lines:
+		if not line:
+			if prevBlank:
+				continue
+			prevBlank = True
+		else:
+			prevBlank = False
+		cleaned.append(line)
+	return "\n".join(cleaned).rstrip()
+
 def obtainUWPWindowText():
 	foreground = api.getForegroundObject()
 	desktop = api.getDesktopObject()
@@ -33,7 +51,7 @@ def obtainUWPWindowText():
 			hasTerm = True
 			info = curObject.makeTextInfo(textInfos.POSITION_FIRST)
 			info.expand(textInfos.UNIT_STORY)
-			termTextList.append(info.clipboardText.rstrip())
+			termTextList.append(_cleanTerminalText(info.clipboardText))
 		elif curObject.name is not None:
 			uwpTextList.append(curObject.name)
 		if curObject.simpleFirstChild:
@@ -59,7 +77,7 @@ def obtainUWPWindowText():
 		hasTerm = True
 		info = foreground.makeTextInfo(textInfos.POSITION_FIRST)
 		info.expand(textInfos.UNIT_STORY)
-		termTextList.append(info.clipboardText.rstrip())
+		termTextList.append(_cleanTerminalText(info.clipboardText))
 	# For terminal-hosted windows (e.g. cmd.exe inside Windows Terminal), the child walk
 	# also picks up the duplicated title, scroll-bar parts, "Close Tab" and "System" menu.
 	# Suppress that chrome and return only the title plus the actual terminal text.
