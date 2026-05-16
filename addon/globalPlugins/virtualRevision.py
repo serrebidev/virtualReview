@@ -18,18 +18,24 @@ try:
 except:
 	SCRCAT_TEXTREVIEW = None
 
+def _isTermControl(obj):
+	return hasattr(obj, "UIAElement") and obj.UIAElement and obj.UIAElement.currentClassName == "TermControl"
+
 def obtainUWPWindowText():
 	foreground = api.getForegroundObject()
 	desktop = api.getDesktopObject()
 	uwpTextList = [foreground.name]
+	termTextList = []
+	hasTerm = _isTermControl(foreground)
 	curObject=foreground.firstChild
 	while curObject:
-		if curObject.name is not None: uwpTextList.append(curObject.name)
-		if hasattr(curObject, "UIAElement") and curObject.UIAElement and curObject.UIAElement.currentClassName == "TermControl":
+		if _isTermControl(curObject):
+			hasTerm = True
 			info = curObject.makeTextInfo(textInfos.POSITION_FIRST)
 			info.expand(textInfos.UNIT_STORY)
-			text = info.clipboardText.rstrip()
-			uwpTextList.append(text)
+			termTextList.append(info.clipboardText.rstrip())
+		elif curObject.name is not None:
+			uwpTextList.append(curObject.name)
 		if curObject.simpleFirstChild:
 			curObject=curObject.simpleFirstChild
 			continue
@@ -49,11 +55,16 @@ def obtainUWPWindowText():
 				curObject=parent.simpleNext
 			except AttributeError:
 				continue
-	if hasattr(foreground, "UIAElement") and foreground.UIAElement and foreground.UIAElement.currentClassName == "TermControl":
+	if _isTermControl(foreground):
+		hasTerm = True
 		info = foreground.makeTextInfo(textInfos.POSITION_FIRST)
 		info.expand(textInfos.UNIT_STORY)
-		text = info.clipboardText.rstrip()
-		uwpTextList.append(text)
+		termTextList.append(info.clipboardText.rstrip())
+	# For terminal-hosted windows (e.g. cmd.exe inside Windows Terminal), the child walk
+	# also picks up the duplicated title, scroll-bar parts, "Close Tab" and "System" menu.
+	# Suppress that chrome and return only the title plus the actual terminal text.
+	if hasTerm:
+		return [foreground.name] + termTextList
 	return uwpTextList
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
