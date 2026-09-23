@@ -23,10 +23,10 @@ addon_info = AddonInfo(
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
 	addon_description = _("""Provides a simple reviewable dialog of the text of the currently focused window."""),
 	# version
-	addon_version = "2026.05.14",
+	addon_version = "2026.09.23",
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog = _("""Set compatibility with NVDA 2026.1."""),
+	addon_changelog = _("""Restore Virtual Review in Windows Terminal tabs and panes; add a settings toggle for the UWP alert beeps; strip terminal padding and decorative borders from reviewed text; add NVDA+Alt+W shortcut for NVDA 2026.2."""),
 	# Author(s)
 	addon_author = "Rui Fontes <rui.fontes@tiflotecnia.com>, Rui Batista <ruiandrebatista@gmail.com> and NVDA Addon Team",
 	# URL for the add-on documentation support
